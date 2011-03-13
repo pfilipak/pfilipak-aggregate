@@ -38,9 +38,11 @@ import oauth.signpost.exception.OAuthExpectationFailedException;
 import oauth.signpost.exception.OAuthMessageSignerException;
 
 import org.opendatakit.aggregate.CallingContext;
+import org.opendatakit.aggregate.client.form.ExternServSummary;
 import org.opendatakit.aggregate.constants.ErrorConsts;
 import org.opendatakit.aggregate.constants.HtmlUtil;
 import org.opendatakit.aggregate.constants.ServletConsts;
+import org.opendatakit.aggregate.constants.common.OperationalStatus;
 import org.opendatakit.aggregate.constants.externalservice.ExternalServiceOption;
 import org.opendatakit.aggregate.constants.externalservice.ExternalServiceType;
 import org.opendatakit.aggregate.constants.externalservice.FusionTableConsts;
@@ -50,7 +52,6 @@ import org.opendatakit.aggregate.datamodel.FormElementModel;
 import org.opendatakit.aggregate.datamodel.FormElementModel.ElementType;
 import org.opendatakit.aggregate.exception.ODKExternalServiceException;
 import org.opendatakit.aggregate.exception.ODKFormNotFoundException;
-import org.opendatakit.aggregate.externalservice.FormServiceCursor.OperationalStatus;
 import org.opendatakit.aggregate.form.Form;
 import org.opendatakit.aggregate.format.Row;
 import org.opendatakit.aggregate.format.element.FusionTableElementFormatter;
@@ -213,6 +214,16 @@ public class FusionTable extends AbstractExternalService implements ExternalServ
     }
   }
 
+  @Override
+  public ExternServSummary transform() {    
+    return new ExternServSummary(fsc.getCreatorUriUser(),
+        fsc.getOperationalStatus(),
+        fsc.getEstablishmentDateTime(),
+        fsc.getExternalServiceOption().getDescriptionOfOption(),
+        fsc.getExternalServiceType().getServiceName(),
+          getDescriptiveTargetString());
+  }
+  
   public void persist(CallingContext cc) throws ODKEntityPersistException {
     Datastore ds = cc.getDatastore();
     User user = cc.getCurrentUser();

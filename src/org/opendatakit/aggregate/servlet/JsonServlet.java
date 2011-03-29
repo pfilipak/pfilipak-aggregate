@@ -27,7 +27,7 @@ import org.opendatakit.aggregate.CallingContext;
 import org.opendatakit.aggregate.ContextFactory;
 import org.opendatakit.aggregate.constants.ErrorConsts;
 import org.opendatakit.aggregate.constants.ServletConsts;
-import org.opendatakit.aggregate.constants.externalservice.ExternalServiceOption;
+import org.opendatakit.aggregate.constants.common.ExternalServiceOption;
 import org.opendatakit.aggregate.exception.ODKExternalServiceException;
 import org.opendatakit.aggregate.exception.ODKFormNotFoundException;
 import org.opendatakit.aggregate.externalservice.JsonServer;
@@ -55,7 +55,7 @@ public class JsonServlet extends ServletUtilBase {
   public static final String ADDR = "extern/json";
 
   /**
-   * Handler for HTTP Get request to create a google spreadsheet
+   * Handler for HTTP Get request to create a json server
    * 
    * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest,
    *      javax.servlet.http.HttpServletResponse)

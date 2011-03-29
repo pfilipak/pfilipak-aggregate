@@ -38,10 +38,12 @@ import oauth.signpost.exception.OAuthExpectationFailedException;
 import oauth.signpost.exception.OAuthMessageSignerException;
 
 import org.opendatakit.aggregate.CallingContext;
+import org.opendatakit.aggregate.client.form.ExternServSummary;
 import org.opendatakit.aggregate.constants.ErrorConsts;
 import org.opendatakit.aggregate.constants.HtmlUtil;
 import org.opendatakit.aggregate.constants.ServletConsts;
-import org.opendatakit.aggregate.constants.externalservice.ExternalServiceOption;
+import org.opendatakit.aggregate.constants.common.ExternalServiceOption;
+import org.opendatakit.aggregate.constants.common.OperationalStatus;
 import org.opendatakit.aggregate.constants.externalservice.ExternalServiceType;
 import org.opendatakit.aggregate.constants.externalservice.FusionTableConsts;
 import org.opendatakit.aggregate.constants.format.FormatConsts;
@@ -50,7 +52,6 @@ import org.opendatakit.aggregate.datamodel.FormElementModel;
 import org.opendatakit.aggregate.datamodel.FormElementModel.ElementType;
 import org.opendatakit.aggregate.exception.ODKExternalServiceException;
 import org.opendatakit.aggregate.exception.ODKFormNotFoundException;
-import org.opendatakit.aggregate.externalservice.FormServiceCursor.OperationalStatus;
 import org.opendatakit.aggregate.form.Form;
 import org.opendatakit.aggregate.format.Row;
 import org.opendatakit.aggregate.format.element.FusionTableElementFormatter;
@@ -109,6 +110,77 @@ public class FusionTable extends AbstractExternalService implements ExternalServ
         new EntityKey(fp, objectEntity.getUri()), cc);
   }
 
+  public FusionTable(Form form, ExternalServiceOption externalServiceOption, CallingContext cc)
+      throws ODKDatastoreException {
+    this(form, cc);
+
+    objectEntity = cc.getDatastore().createEntityUsingRelation(
+        FusionTableParameterTable.assertRelation(cc), cc.getCurrentUser());
+
+    fsc = FormServiceCursor.createFormServiceCursor(form, ExternalServiceType.GOOGLE_FUSIONTABLES,
+        objectEntity, cc);
+    fsc.setExternalServiceOption(externalServiceOption);
+    fsc.setIsExternalServicePrepared(false);
+    fsc.setOperationalStatus(OperationalStatus.ESTABLISHED);
+    fsc.setEstablishmentDateTime(new Date());
+
+    fsc.setUploadCompleted(false);
+    persist(cc);
+  }
+  
+  
+  public void authenticateAndCreate(OAuthToken authToken, CallingContext cc) throws ODKExternalServiceException, ODKDatastoreException {
+
+    try {
+      GoogleOAuthParameters oauthParameters = new GoogleOAuthParameters();
+      oauthParameters.setOAuthConsumerKey(ServletConsts.OAUTH_CONSUMER_KEY);
+      oauthParameters.setOAuthConsumerSecret(ServletConsts.OAUTH_CONSUMER_SECRET);
+      oauthParameters.setOAuthToken(authToken.getToken());
+      oauthParameters.setOAuthTokenSecret(authToken.getTokenSecret());
+      fusionTableService.setOAuthCredentials(oauthParameters, new OAuthHmacSha1Signer());
+    } catch (OAuthException e) {
+      // TODO: handle OAuth failure
+      e.printStackTrace();
+    }
+
+    HeaderFormatter headerFormatter = new FusionTableHeaderFormatter();
+    FormElementModel root = form.getTopLevelGroupElement();
+
+    String tableId = executeFusionTableCreation(form, fusionTableService, headerFormatter, root,
+        authToken);
+
+    List<TableId> repeatIds = new ArrayList<TableId>();
+
+    for (FormElementModel repeatGroupElement : form.getRepeatGroupsInModel()) {
+      String id = executeFusionTableCreation(form, fusionTableService, headerFormatter,
+          repeatGroupElement, authToken);
+      TableId repeatId = new TableId(id, repeatGroupElement);
+      repeatIds.add(repeatId);
+    }
+
+    // construct the list of table ids from the passed-in associations...
+    repeatElementTableIds = new ArrayList<FusionTableRepeatParameterTable>();
+
+    FusionTableRepeatParameterTable frpt = FusionTableRepeatParameterTable.assertRelation(cc);
+
+    Datastore ds = cc.getDatastore();
+    User user = cc.getCurrentUser();
+    for (TableId a : repeatIds) {
+      FusionTableRepeatParameterTable t = ds.createEntityUsingRelation(frpt, user);
+      t.setUriFusionTable(objectEntity.getUri());
+      t.setFormElementKey(a.getElement().constructFormElementKey(form));
+      t.setFusionTableId(a.getId());
+      repeatElementTableIds.add(t);
+    }
+
+    objectEntity.setAuthToken(authToken.getToken());
+    objectEntity.setAuthTokenSecret(authToken.getTokenSecret());
+    objectEntity.setFusionTableId(tableId);
+    fsc.setIsExternalServicePrepared(true);
+    fsc.setOperationalStatus(OperationalStatus.ACTIVE);
+    persist(cc);
+  }
+  
   public FusionTable(Form form, OAuthToken authToken, ExternalServiceOption externalServiceOption,
       String tableId, List<TableId> repeatElementTableIdAssociations, CallingContext cc)
       throws ODKDatastoreException, ODKExternalServiceException {
@@ -213,10 +285,23 @@ public class FusionTable extends AbstractExternalService implements ExternalServ
     }
   }
 
+  @Override
+  public ExternServSummary transform() {    
+    return new ExternServSummary(fsc.getUri(),
+        fsc.getCreatorUriUser(),
+        fsc.getOperationalStatus(),
+        fsc.getEstablishmentDateTime(),
+        fsc.getExternalServiceOption().getDescriptionOfOption(),
+        fsc.getExternalServiceType().getServiceName(),
+          getDescriptiveTargetString());
+  }
+  
   public void persist(CallingContext cc) throws ODKEntityPersistException {
     Datastore ds = cc.getDatastore();
     User user = cc.getCurrentUser();
-    ds.putEntities(repeatElementTableIds, user);
+    if(repeatElementTableIds != null) {
+      ds.putEntities(repeatElementTableIds, user);
+    }
     ds.putEntity(objectEntity, user);
     ds.putEntity(fsc, user);
   }
@@ -369,6 +454,7 @@ public class FusionTable extends AbstractExternalService implements ExternalServ
         FusionTableConsts.HTML_ESCAPED_SINGLE_QUOTE);
   }
 
+    
   public static FusionTable createFusionTable(Form form, OAuthToken authToken,
       ExternalServiceOption externalServiceOption, CallingContext cc) throws ODKDatastoreException,
       ODKExternalServiceException {

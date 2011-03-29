@@ -25,10 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.opendatakit.aggregate.CallingContext;
+import org.opendatakit.aggregate.client.form.FormSummary;
 import org.opendatakit.aggregate.datamodel.FormDataModel;
 import org.opendatakit.aggregate.datamodel.FormElementModel;
-import org.opendatakit.aggregate.datamodel.TopLevelDynamicBase;
 import org.opendatakit.aggregate.datamodel.FormElementModel.ElementType;
+import org.opendatakit.aggregate.datamodel.TopLevelDynamicBase;
 import org.opendatakit.aggregate.exception.ODKFormNotFoundException;
 import org.opendatakit.aggregate.submission.Submission;
 import org.opendatakit.aggregate.submission.SubmissionKey;
@@ -556,6 +557,13 @@ public class Form {
     for (FormElementModel child : children) {
       populateRepeatElementMap(child);
     }
+  }
+  
+  
+  public FormSummary generateFormSummary() {
+    boolean submit = getSubmissionEnabled();    
+    boolean downloadable = getDownloadEnabled();
+    return new FormSummary(getViewableName(), getFormId(), getCreationUser(), downloadable, submit);
   }
   
   /**

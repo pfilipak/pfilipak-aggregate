@@ -16,6 +16,7 @@ package org.opendatakit.aggregate.externalservice;
 
 import java.util.List;
 
+import org.opendatakit.aggregate.client.form.ExternServSummary;
 import org.opendatakit.aggregate.CallingContext;
 import org.opendatakit.aggregate.exception.ODKExternalServiceException;
 import org.opendatakit.aggregate.submission.Submission;
@@ -35,6 +36,8 @@ public interface ExternalService {
   public void sendSubmissions(List<Submission> submissions, CallingContext cc) throws ODKExternalServiceException;
   
   public void setUploadCompleted(CallingContext cc) throws ODKEntityPersistException;
+  
+  public void authenticateAndCreate(OAuthToken authToken, CallingContext cc) throws ODKExternalServiceException, ODKDatastoreException;
   
   /**
    * Abandon the action.  
@@ -70,4 +73,11 @@ public interface ExternalService {
    * @return
    */
   public String getDescriptiveTargetString();
+  
+  /**
+   * Transform to external service summary for the gwt interface
+   * 
+   * @return
+   */
+  public ExternServSummary transform();
 }

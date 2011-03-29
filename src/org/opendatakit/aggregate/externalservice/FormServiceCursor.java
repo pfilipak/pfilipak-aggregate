@@ -18,15 +18,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.opendatakit.aggregate.CallingContext;
-import org.opendatakit.aggregate.constants.externalservice.ExternalServiceOption;
+import org.opendatakit.aggregate.constants.common.ExternalServiceOption;
+import org.opendatakit.aggregate.constants.common.OperationalStatus;
 import org.opendatakit.aggregate.constants.externalservice.ExternalServiceType;
 import org.opendatakit.aggregate.form.Form;
 import org.opendatakit.common.persistence.CommonFieldsBase;
 import org.opendatakit.common.persistence.DataField;
+import org.opendatakit.common.persistence.DataField.IndexType;
 import org.opendatakit.common.persistence.Datastore;
 import org.opendatakit.common.persistence.PersistConsts;
 import org.opendatakit.common.persistence.Query;
-import org.opendatakit.common.persistence.DataField.IndexType;
 import org.opendatakit.common.persistence.Query.Direction;
 import org.opendatakit.common.persistence.Query.FilterOperation;
 import org.opendatakit.common.persistence.exception.ODKDatastoreException;
@@ -42,13 +43,6 @@ import org.opendatakit.common.security.User;
 public final class FormServiceCursor extends CommonFieldsBase {
 
   private static final String TABLE_NAME = "_form_service_cursor";
-  
-  public static enum OperationalStatus {
-	  ACTIVE,
-	  PAUSED,
-	  COMPLETED,
-	  ABANDONED
-  };
   
   private static final DataField URI_MD5_FORM_ID_PROPERTY = new DataField("URI_MD5_FORM_ID",
 	      DataField.DataType.URI, false, PersistConsts.URI_STRING_LEN).setIndexable(IndexType.HASH);
